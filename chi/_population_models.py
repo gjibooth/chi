@@ -3626,6 +3626,57 @@ class TruncatedGaussianModel(PopulationModel):
 
         return log_likelihood, dpsi, dtheta
 
+    def compute_individual_parameters(self, parameters, eta, return_eta=False, *args, **kwargs):
+        """
+        Returns the individual parameters for a Truncated Gaussian Model.
+
+        If ``centered = True``, the model does not transform the parameters
+        and ``eta`` is returned. If ``centered = False``, the individual parameters
+        are defined as
+
+        .. math::
+            \psi = \max(0, \mu + \sigma \eta),
+
+        where :math:`\mu` and :math:`\sigma` are the model parameters and
+        :math:`\eta` are the inter-individual fluctuations. The max operation
+        ensures truncation at zero.
+
+        :param parameters: Model parameters.
+        :type parameters: np.ndarray of shape ``(n_parameters,)``,
+            ``(n_param_per_dim, n_dim)`` or ``(n_ids, n_param_per_dim, n_dim)``
+        :param eta: Inter-individual fluctuations.
+        :type eta: np.ndarray of shape ``(n_ids * n_dim)`` or
+            ``(n_ids, n_dim)``
+        :param return_eta: A boolean flag indicating whether eta is returned
+            regardless of whether the parametrisation is centered or not.
+        :type return_eta: boolean, optional
+        :rtype: np.ndarray of shape ``(n_ids, n_dim)``
+        """
+        eta = np.asarray(eta)
+        if eta.ndim == 1:
+            eta = eta.reshape(self._n_ids, self._n_dim)
+        if self._centered or return_eta:
+            return eta
+
+        parameters = np.asarray(parameters)
+        if parameters.ndim == 1:
+            n_parameters = len(parameters) // self._n_dim
+            parameters = parameters.reshape(1, n_parameters, self._n_dim)
+        elif parameters.ndim == 2:
+            n_parameters = parameters[np.newaxis, ...]
+
+        mu = parameters[:, 0]
+        sigma = parameters[:, 1]
+
+        if np.any(sigma < 0):
+            return np.full(shape=eta.shape, fill_value=np.nan)
+
+        # The main difference from GaussianModel is the truncation at zero
+        psi = np.maximum(0, mu + sigma * eta)
+
+        return psi
+
+
     def compute_log_likelihood(
             self, parameters, observations, *args, **kwargs):
         """
