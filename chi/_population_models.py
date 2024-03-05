@@ -3529,7 +3529,7 @@ class TruncatedGaussianModel(PopulationModel):
     :param dim_names: Optional names of the population dimensions.
     :type dim_names: List[str], optional
     """
-    def __init__(self, n_dim=1, dim_names=None):
+    def __init__(self, n_dim=1, dim_names=None, centered=True):
         super(TruncatedGaussianModel, self).__init__(n_dim, dim_names)
 
         # Set number of parameters
@@ -3537,6 +3537,8 @@ class TruncatedGaussianModel(PopulationModel):
 
         # Set default parameter names
         self._parameter_names = ['Mu'] * self._n_dim + ['Sigma'] * self._n_dim
+
+        self._centered = bool(centered)
 
     @staticmethod
     def _compute_log_likelihood(mus, sigmas, observations):  # pragma: no cover
